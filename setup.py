@@ -8,7 +8,7 @@ install_requires = [
 ]
 
 name = 'sentry-cassandra-nodestore'
-version = '1.2.0'
+version = '1.2.0+1'
 with open("README.md", "r") as readme:
     long_description = readme.read()
 
@@ -24,7 +24,7 @@ setup(
     zip_safe=False,
     include_package_data=True,
     install_requires = [
-        'cassandra-driver',
+        'scylla-driver',
     ],
     packages=[
         'sentry-cassandra-nodestore',

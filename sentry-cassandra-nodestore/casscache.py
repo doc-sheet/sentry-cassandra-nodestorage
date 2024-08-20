@@ -17,16 +17,6 @@ from cassandra.cluster import Cluster, Session
 from cassandra.protocol import SyntaxException
 
 
-PY3 = sys.version_info[0] == 3
-
-if PY3:
-    long = int
-
-if "SENTRY_EVENT_RETENTION_DAYS" in environ:
-    sentry_ttl = int(environ.get('SENTRY_EVENT_RETENTION_DAYS')) * 24 * 60 * 60
-else:
-    sentry_ttl = 0
-
 if not hasattr(Session, 'execute_many'):
     def _execute_many(self, queries, trace=False):
         """
@@ -49,12 +39,13 @@ class Client(object):
     _FLAG_INTEGER = 1 << 1
     _FLAG_LONG = 1 << 2
 
-    def __init__(self, servers, keyspace, columnfamily, **kwargs):
+    def __init__(self, servers, keyspace, columnfamily, ttl=0, **kwargs):
         hosts, port = set(), '9042'
         for server in servers:
             host, port = server.split(':', 1)
             hosts.add(host)
 
+        self._ttl = ttl
         self._cluster = Cluster(hosts, port=int(port), **kwargs)
         self._cluster.protocol_version = 4
         self._session = self._cluster.connect()
@@ -96,7 +87,10 @@ class Client(object):
                 result[keys[idx]] = value
         return result
 
-    def set(self, key, val, time=sentry_ttl, min_compress_len=0):
+    def set(self, key, val, time=None, min_compress_len=0):
+        if time is None:
+            time = self._ttl
+
         if time == 0:
             statement = self._SET
             self._session.execute(statement.bind((key,) + self._val_to_store_info(val)))
@@ -109,7 +103,10 @@ class Client(object):
                 self._session.execute(statement.bind((key,) + self._val_to_store_info(val)))
         return True
 
-    def set_multi(self, mapping, time=sentry_ttl, key_prefix='', min_compress_len=0):
+    def set_multi(self, mapping, time=None, key_prefix='', min_compress_len=0):
+        if time is None:
+            time = self._ttl
+
         statement = self._get_set_statement(time)
         if statement is not None:
             prefixed_keys = self._prefix_keys(mapping.keys(), key_prefix)
@@ -156,7 +153,7 @@ class Client(object):
             elif flags & Client._FLAG_INTEGER:
                 return int(val)
             elif flags & Client._FLAG_LONG:
-                return long(val)
+                return int(val)
             elif flags & Client._FLAG_PICKLE:
                 return pickle.loads(val)
             return None
@@ -172,8 +169,6 @@ class Client(object):
             return val, 0
         elif isinstance(val, int):
             return "%d" % val, Client._FLAG_INTEGER
-        elif isinstance(val, long):
-            return "%d" % val, Client._FLAG_LONG
         return pickle.dumps(val, protocol=pickle.HIGHEST_PROTOCOL), Client._FLAG_PICKLE
 
     def get_stats(self, *args, **kwargs):
