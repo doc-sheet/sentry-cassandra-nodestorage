@@ -1,7 +1,7 @@
 from .casscache import Client  # NOQA
 
 from sentry.nodestore.base import NodeStorage
-from sentry.utils.cache import memoize
+from django.utils.functional import cached_property
 
 class CassandraNodeStorage(NodeStorage):
     """
@@ -27,7 +27,7 @@ class CassandraNodeStorage(NodeStorage):
         self.options = kwargs
         super(CassandraNodeStorage, self).__init__()
 
-    @memoize
+    @cached_property
     def connection(self):
         return Client(
             servers=self.servers,
