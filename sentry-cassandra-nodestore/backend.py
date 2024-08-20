@@ -19,12 +19,19 @@ class CassandraNodeStorage(NodeStorage):
         servers,
         keyspace='sentry',
         columnfamily='nodestore',
+        ttl=0,
         **kwargs
     ):
         self.servers = servers
         self.keyspace = keyspace
         self.columnfamily = columnfamily
         self.options = kwargs
+        if ttl != 0:
+            self.ttl = ttl
+        elif "SENTRY_EVENT_RETENTION_DAYS" in environ:
+            self.ttl = int(environ.get('SENTRY_EVENT_RETENTION_DAYS')) * 24 * 60 * 60
+        else:
+            self.ttl = 0
         super(CassandraNodeStorage, self).__init__()
 
     @cached_property
@@ -33,6 +40,7 @@ class CassandraNodeStorage(NodeStorage):
             servers=self.servers,
             keyspace=self.keyspace,
             columnfamily=self.columnfamily,
+            ttl=self.ttl,
             **self.options
         )
 
