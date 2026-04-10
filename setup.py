@@ -8,7 +8,7 @@ install_requires = [
 ]
 
 name = 'sentry-cassandra-nodestore'
-version = '1.2.0+2'
+version = '1.2.0+3'
 with open("README.md", "r") as readme:
     long_description = readme.read()
 
