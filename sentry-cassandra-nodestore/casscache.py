@@ -144,7 +144,7 @@ class Client(object):
 
     def _handle_row(self, rows):
         try:
-            row = rows[0]
+            row = rows.one()
             val, flags = row.value, row.flags
             if flags == 0:
                 # Either a bare string or a compressed string now decompressed...
